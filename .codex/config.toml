@@ -1,4 +1,5 @@
 # Project-scoped settings; permissions and model settings remain inherited.
 [agents]
 enabled = true
-max_concurrent_threads_per_session = 3
+max_concurrent_threads_per_session = 4
+default_subagent_reasoning_effort = "high"
