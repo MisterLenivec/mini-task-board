@@ -22,6 +22,8 @@ let tasks = [];
 let editingId = null;
 let activeFilter = "";
 let busy = false;
+let draggedTaskId = null;
+const taskDragType = "application/x-mini-task-board-task";
 
 function clearMessages() {
   feedback.textContent = "";
@@ -37,6 +39,10 @@ function showError(message) {
 
 function setBusy(value) {
   busy = value;
+  if (value) clearDragState();
+  board.querySelectorAll("[data-task-id]").forEach((card) => {
+    card.draggable = !value;
+  });
   form.querySelector("fieldset").disabled = value;
   filter.disabled = value;
   refreshButton.disabled = value;
@@ -102,6 +108,20 @@ function makeCard(task) {
   const item = cardTemplate.content.firstElementChild.cloneNode(true);
   const card = item.querySelector("article");
   card.dataset.taskId = String(task.id);
+  card.draggable = !busy;
+  card.addEventListener("dragstart", (event) => {
+    if (busy || !event.dataTransfer || event.target.closest("button, select, input, textarea, a")) {
+      event.preventDefault();
+      return;
+    }
+    clearDragState();
+    draggedTaskId = task.id;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(taskDragType, String(task.id));
+    card.classList.add("is-dragging");
+    board.dataset.dragging = "true";
+  });
+  card.addEventListener("dragend", clearDragState);
   item.querySelector(".task-title").textContent = task.title;
   const description = item.querySelector(".task-description");
   description.textContent = task.description;
@@ -124,15 +144,7 @@ function makeCard(task) {
     const nextStatus = statusSelect.value;
     // Keep the confirmed state visible until the server accepts the PATCH.
     statusSelect.value = task.status;
-    if (busy || nextStatus === task.status) return;
-    mutateTask(
-      () => apiRequest(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: nextStatus }),
-      }),
-      "Статус задачи обновлён.",
-      () => focusTaskControl(task.id, "status"),
-    );
+    changeTaskStatus(task, nextStatus);
   });
   item.querySelector('[data-action="edit"]').addEventListener("click", () => beginEdit(task));
   item.querySelector('[data-action="delete"]').addEventListener("click", () => {
@@ -146,6 +158,74 @@ function makeCard(task) {
   });
   return item;
 }
+
+function changeTaskStatus(task, nextStatus) {
+  if (busy || nextStatus === task.status) return;
+  mutateTask(
+    () => apiRequest(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: nextStatus }),
+    }),
+    "Статус задачи обновлён.",
+    () => focusTaskControl(task.id, "status"),
+  );
+}
+
+function clearDropTargets() {
+  board.querySelectorAll(".is-drop-target").forEach((column) => {
+    column.classList.remove("is-drop-target");
+  });
+}
+
+function clearDragState() {
+  draggedTaskId = null;
+  delete board.dataset.dragging;
+  clearDropTargets();
+  board.querySelectorAll(".is-dragging").forEach((card) => {
+    card.classList.remove("is-dragging");
+  });
+}
+
+function internalDraggedTask(event) {
+  if (busy || draggedTaskId === null || !event.dataTransfer?.types.includes(taskDragType)) return null;
+  return tasks.find((task) => task.id === draggedTaskId) || null;
+}
+
+function dropColumn(event) {
+  const column = event.target instanceof Element ? event.target.closest(".column[data-status]") : null;
+  return column && board.contains(column) && Object.hasOwn(statusLabels, column.dataset.status)
+    ? column : null;
+}
+
+board.addEventListener("dragover", (event) => {
+  const task = internalDraggedTask(event);
+  const column = dropColumn(event);
+  clearDropTargets();
+  if (!task || !column || task.status === column.dataset.status) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  column.classList.add("is-drop-target");
+});
+board.addEventListener("dragleave", (event) => {
+  const column = dropColumn(event);
+  if (column && (!(event.relatedTarget instanceof Node) || !column.contains(event.relatedTarget))) {
+    column.classList.remove("is-drop-target");
+  }
+});
+board.addEventListener("drop", (event) => {
+  const task = internalDraggedTask(event);
+  const column = dropColumn(event);
+  if (!task || !column || event.dataTransfer.getData(taskDragType) !== String(task.id)) return;
+  event.preventDefault();
+  const nextStatus = column.dataset.status;
+  clearDragState();
+  changeTaskStatus(task, nextStatus);
+});
+document.addEventListener("dragend", clearDragState);
+document.addEventListener("drop", clearDragState);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") clearDragState();
+});
 
 function renderTasks() {
   Object.keys(statusLabels).forEach((status) => {

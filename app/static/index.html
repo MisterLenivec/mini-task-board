@@ -80,7 +80,8 @@
               <button id="refresh-board" class="button button-secondary" type="button">Обновить</button>
             </div>
           </div>
-          <div id="board" class="board" aria-busy="false">
+          <p id="drag-hint" class="board-hint">Перетащите карточку за заголовок в другую колонку или выберите статус в списке.</p>
+          <div id="board" class="board" aria-busy="false" aria-describedby="drag-hint">
             <section class="column column-todo" data-status="todo" aria-labelledby="todo-heading">
               <header class="column-heading"><h3 id="todo-heading"><span class="status-dot" aria-hidden="true"></span>К выполнению</h3><span class="column-count" data-count="todo">0</span></header>
               <ul class="task-list" data-testid="task-list-todo"></ul>
