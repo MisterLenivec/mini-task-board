@@ -122,6 +122,12 @@ def test_database_constraints_reject_invalid_rows_without_api_validation(server_
                     (None, "", "todo"),
                     ("Title", None, "todo"),
                     ("Title", "", None),
+                    ("\x00Title", "", "todo"),
+                    ("Ti\x00tle", "", "todo"),
+                    ("Title\x00", "", "todo"),
+                    ("Title", "\x00Description", "todo"),
+                    ("Title", "Desc\x00ription", "todo"),
+                    ("Title", "Description\x00", "todo"),
                 ]
                 for row in invalid_rows:
                     with pytest.raises(sqlite3.IntegrityError):
@@ -130,3 +136,19 @@ def test_database_constraints_reject_invalid_rows_without_api_validation(server_
                         )
                     connection.rollback()
             assert live_client.get("/api/tasks").json() == [original]
+
+
+@pytest.mark.parametrize("field", ["title", "description"])
+@pytest.mark.parametrize("value", ["\x00Text", "Te\x00xt", "Text\x00"])
+def test_nul_characters_are_rejected_atomically_on_create_and_patch(client, field, value):
+    response = client.post("/api/tasks", json={"title": "Attempt", field: value})
+    assert response.status_code == 422
+    assert client.get("/api/tasks").json() == []
+
+    original = client.post(
+        "/api/tasks", json={"title": "Original", "description": "Preserve", "status": "done"}
+    ).json()
+    response = client.patch(f"/api/tasks/{original['id']}", json={"status": "todo", field: value})
+    assert response.status_code == 422
+    assert client.get(f"/api/tasks/{original['id']}").json() == original
+    assert client.get("/api/tasks").json() == [original]

@@ -21,6 +21,8 @@ class Task(Base):
     __table_args__ = (
         CheckConstraint("length(title) BETWEEN 1 AND 200", name="valid_title_length"),
         CheckConstraint("length(description) <= 5000", name="valid_description_length"),
+        CheckConstraint("instr(title, char(0)) = 0", name="title_without_nul"),
+        CheckConstraint("instr(description, char(0)) = 0", name="description_without_nul"),
         CheckConstraint("status IN ('todo', 'in_progress', 'done')", name="valid_status"),
     )
 

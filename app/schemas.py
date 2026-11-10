@@ -6,8 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models import TaskStatus
 
-Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
-Description = Annotated[str, StringConstraints(max_length=5000)]
+Title = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=200, pattern=r"^[^\x00]*$"),
+]
+Description = Annotated[str, StringConstraints(max_length=5000, pattern=r"^[^\x00]*$")]
 
 
 class TaskCreate(BaseModel):
