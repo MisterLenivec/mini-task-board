@@ -3,12 +3,114 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
     <title>Mini Task Board</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
   </head>
   <body>
-    <main>
-      <h1>Mini Task Board</h1>
-      <p>Основа приложения готова. Управление задачами появится на следующих этапах.</p>
-    </main>
+    <div class="page-shell">
+      <header class="page-header">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">▥</span>Mini Task Board</div>
+        <span class="header-note">Меньше суеты. Больше сделанного.</span>
+      </header>
+      <main>
+        <section class="page-intro" aria-labelledby="page-title">
+          <p class="eyebrow">ВАШ РАБОЧИЙ РИТМ</p>
+          <h1 id="page-title">Всё по своим местам.</h1>
+          <p>Соберите задачи в одном месте и двигайтесь от идеи к результату.</p>
+        </section>
+
+        <section class="composer" aria-labelledby="form-heading">
+          <div class="composer-heading">
+            <h2 id="form-heading">Новая задача</h2>
+            <span class="field-hint">Начните с небольшого шага</span>
+          </div>
+          <form id="task-form">
+            <fieldset id="form-fields">
+              <legend class="sr-only">Поля задачи</legend>
+              <div class="form-row">
+                <div class="field title-field">
+                  <label for="task-title">Название <span aria-hidden="true">*</span></label>
+                  <input id="task-title" name="title" type="text" required maxlength="200" placeholder="Что нужно сделать?" autocomplete="off">
+                </div>
+                <div class="field status-field">
+                  <label for="task-status">Статус</label>
+                  <select id="task-status" name="status">
+                    <option value="todo">К выполнению</option>
+                    <option value="in_progress">В работе</option>
+                    <option value="done">Готово</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field description-field">
+                <label for="task-description">Описание <span class="optional">необязательно</span></label>
+                <textarea id="task-description" name="description" maxlength="5000" rows="2" placeholder="Детали, которые помогут вернуться к задаче"></textarea>
+              </div>
+              <div class="form-actions">
+                <span class="required-hint">* Обязательное поле</span>
+                <div class="button-group">
+                  <button id="cancel-edit" class="button button-secondary" type="button" hidden>Отмена</button>
+                  <button id="save-task" class="button button-primary" type="submit">Добавить задачу</button>
+                </div>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+
+        <div class="messages">
+          <p id="feedback" role="status" aria-live="polite"></p>
+          <p id="error-message" role="alert" hidden></p>
+        </div>
+
+        <section class="board-section" aria-labelledby="board-heading">
+          <div class="board-toolbar">
+            <div class="board-title">
+              <h2 id="board-heading" tabindex="-1">Мои задачи</h2>
+              <span id="task-count" class="total-count">Показано: 0</span>
+            </div>
+            <div class="board-controls">
+              <label for="status-filter" class="sr-only">Фильтр по статусу</label>
+              <select id="status-filter" aria-label="Фильтр по статусу">
+                <option value="">Все статусы</option>
+                <option value="todo">К выполнению</option>
+                <option value="in_progress">В работе</option>
+                <option value="done">Готово</option>
+              </select>
+              <button id="refresh-board" class="button button-secondary" type="button">Обновить</button>
+            </div>
+          </div>
+          <div id="board" class="board" aria-busy="false">
+            <section class="column column-todo" data-status="todo" aria-labelledby="todo-heading">
+              <header class="column-heading"><h3 id="todo-heading"><span class="status-dot" aria-hidden="true"></span>К выполнению</h3><span class="column-count" data-count="todo">0</span></header>
+              <ul class="task-list" data-testid="task-list-todo"></ul>
+            </section>
+            <section class="column column-progress" data-status="in_progress" aria-labelledby="progress-heading">
+              <header class="column-heading"><h3 id="progress-heading"><span class="status-dot" aria-hidden="true"></span>В работе</h3><span class="column-count" data-count="in_progress">0</span></header>
+              <ul class="task-list" data-testid="task-list-in_progress"></ul>
+            </section>
+            <section class="column column-done" data-status="done" aria-labelledby="done-heading">
+              <header class="column-heading"><h3 id="done-heading"><span class="status-dot" aria-hidden="true"></span>Готово</h3><span class="column-count" data-count="done">0</span></header>
+              <ul class="task-list" data-testid="task-list-done"></ul>
+            </section>
+          </div>
+        </section>
+      </main>
+      <footer class="page-footer">Каждая завершённая задача — шаг вперёд.</footer>
+    </div>
+    <template id="task-card-template">
+      <li class="task-item">
+        <article class="task-card" data-testid="task-card">
+          <h3 class="task-title"></h3>
+          <p class="task-description"></p>
+          <label class="sr-only task-status-label"></label>
+          <select class="card-status" data-action="status"></select>
+          <div class="card-actions">
+            <button class="card-button" data-action="edit" type="button">Изменить</button>
+            <button class="card-button delete-button" data-action="delete" type="button">Удалить</button>
+          </div>
+        </article>
+      </li>
+    </template>
   </body>
 </html>
